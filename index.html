@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚠️ SISTEM TERKUNCI — ikromwalidaini</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+        }
+
+        :root {
+            --merah: #ff0000;
+            --hijau: #00ff00;
+            --hijauTua: #00cc00;
+            --kuning: #ffff00;
+            --biru: #0066ff;
+            --ungu: #cc00ff;
+            --oranye: #ff6600;
+        }
+
+        html, body {
+            background: #000;
+            color: var(--hijau);
+            min-height: 100vh;
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ===== SCANLINE CRT ===== */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg, transparent, transparent 1px, rgba(0,0,0,0.7) 1px, rgba(0,0,0,0.7) 2px
+            );
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* ===== WARNA BERKEDIP ===== */
+        .color-flash {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 9997;
+            animation: colorCycle 0.1s infinite;
+        }
+
+        @keyframes colorCycle {
+            0% { background: rgba(255,0,0,0.12); }
+            33% { background: rgba(0,255,0,0.05); }
+            66% { background: rgba(255,0,0,0.12); }
+            100% { background: rgba(0,255,0,0.05); }
+        }
+
+        /* ===== GETARAN LAYAR ===== */
+        .shake-max {
+            animation: shakeMax 0.03s infinite;
+        }
+
+        @keyframes shakeMax {
+            0%,100% { transform: translate(0) rotate(0deg); }
+            10% { transform: translate(-5px, 4px) rotate(-0.3deg); }
+            20% { transform: translate(5px, -4px) rotate(0.3deg); }
+            30% { transform: translate(-4px, -5px) rotate(-0.2deg); }
+            40% { transform: translate(4px, 5px) rotate(0.2deg); }
+            50% { transform: translate(-5px, 3px) rotate(-0.3deg); }
+            60% { transform: translate(5px, -3px) rotate(0.3deg); }
+            70% { transform: translate(-3px, -4px) rotate(-0.2deg); }
+            80% { transform: translate(3px, 4px) rotate(0.2deg); }
+            90% { transform: translate(-4px, 5px) rotate(-0.3deg); }
+        }
+
+        /* ===== SCAN LINE JALAN ===== */
+        .scan-line {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 3px;
+            background: linear-gradient(90deg, transparent, var(--hijau), transparent);
+            pointer-events: none;
+            z-index: 9996;
+            animation: scanDown 1s linear infinite;
+        }
+
+        @keyframes scanDown {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        /* ===== MATRIKS KODE JATUH ===== */
+        .matrix-col {
+            position: fixed;
+            top: -100%;
+            font-size: 11px;
+            color: var(--hijauTua);
+            text-shadow: 0 0 4px var(--hijau);
+            z-index: 1;
+            pointer-events: none;
+            animation: matrixFall linear infinite;
+            opacity: 0.6;
+        }
+
+        @keyframes matrixFall {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(200vh); }
+        }
+
+        /* ===== KAMERA PREVIEW — REC DI DALAM ===== */
+        .kamera-wrapper {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 100;
+        }
+
+        .kamera-box {
+            position: relative;
+            width: 120px;
+            height: 90px;
+            border: 2px solid var(--merah);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 20px var(--merah), inset 0 0 10px rgba(255,0,0,0.3);
+            animation: kameraBlink 0.5s infinite alternate;
+            background: #100;
+        }
+
+        @keyframes kameraBlink {
+            0% { box-shadow: 0 0 10px var(--merah), inset 0 0 5px rgba(255,0,0,0.2); }
+            100% { box-shadow: 0 0 25px var(--merah), 0 0 40px var(--oranye), inset 0 0 15px rgba(255,0,0,0.4); }
+        }
+
+        #videoKamera {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        /* ===== REC: DI DALAM KAMERA — BAWAH KIRI ===== */
+        .rec-label {
+            position: absolute;
+            bottom: 6px;
+            left: 6px;
+            color: var(--merah);
+            font-size: 11px;
+            font-weight: bold;
+            text-shadow: 0 0 8px var(--merah), 0 0 15px var(--merah);
+            background: rgba(0,0,0,0.8);
+            padding: 2px 5px;
+            border-radius: 3px;
+            animation: blinkRec 0.5s infinite alternate;
+            z-index: 10;
+        }
+
+        @keyframes blinkRec {
+            0% { opacity: 1; }
+            100% { opacity: 0.25; }
+        }
+
+        .kamera-status {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            font-size: 9px;
+            color: var(--hijau);
+            background: rgba(0,0,0,0.8);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .foto-tersimpan {
+            position: fixed;
+            top: 115px;
+            right: 15px;
+            width: 120px;
+            height: 90px;
+            border: 2px solid var(--hijau);
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 100;
+            box-shadow: 0 0 15px var(--hijau);
+            display: none;
+        }
+
+        .foto-label {
+            position: absolute;
+            bottom: 2px;
+            left: 2px;
+            font-size: 9px;
+            color: var(--hijau);
+            background: rgba(0,0,0,0.8);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        #canvasFoto { display: none; }
+
+        /* ===== TERMINAL KODE BERJALAN ===== */
+        .terminal-box {
+            background: rgba(0,20,0,0.8);
+            border: 1px solid var(--hijau);
+            padding: 8px;
+            margin: 10px 0;
+            text-align: left;
+            font-size: 11px;
+            color: var(--hijau);
+            height: 70px;
+            overflow: hidden;
+            border-radius: 4px;
+            box-shadow: inset 0 0 10px rgba(0,255,0,0.1);
+        }
+
+        .terminal-line {
+            margin: 2px 0;
+            opacity: 0;
+            animation: munculBaris 0.3s forwards;
+        }
+
+        @keyframes munculBaris {
+            to { opacity: 1; }
+        }
+
+        .kursor-blink {
+            display: inline-block;
+            width: 8px;
+            height: 13px;
+            background: var(--hijau);
+            animation: kedipKursor 0.7s infinite;
+            vertical-align: middle;
+            margin-left: 2px;
+        }
+
+        @keyframes kedipKursor {
+            0%,40% { opacity: 1; }
+            50%,100% { opacity: 0; }
+        }
+
+        /* ===== KOTAK UTAMA ===== */
+        .container {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            padding: 15px;
+        }
+
+        .box-main {
+            border: 2px solid var(--hijau);
+            padding: 15px;
+            background: rgba(0,10,0,0.95);
+            box-shadow: 
+                0 0 30px var(--hijau),
+                inset 0 0 20px rgba(0,255,0,0.2);
+            max-width: 520px;
+            width: 100%;
+            animation: boxPulse 0.25s infinite alternate;
+            border-radius: 8px;
+        }
+
+        @keyframes boxPulse {
+            0% { box-shadow: 0 0 20px var(--hijau), inset 0 0 15px rgba(0,255,0,0.15); }
+            100% { box-shadow: 0 0 40px var(--hijau), inset 0 0 25px rgba(0,255,0,0.3), 0 0 60px var(--merah); }
+        }
+
+        .judul-utama {
+            font-size: clamp(1.3rem, 5.5vw, 2.2rem);
+            font-weight: 900;
+            color: var(--merah);
+            text-shadow: 0 0 15px var(--merah), 0 0 30px var(--merah);
+            margin-bottom: 8px;
+            animation: blinkMerah 0.15s infinite;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        @keyframes blinkMerah {
+            0%,100% { color: var(--merah); }
+            33% { color: var(--oranye); }
+            66% { color: var(--kuning); }
+        }
+
+        .status-bar {
+            background: rgba(0,30,0,0.6);
+            border: 1px solid var(--hijauTua);
+            padding: 6px 8px;
+            margin: 8px 0;
+            font-size: 0.78rem;
+            color: #9f9;
+            text-align: left;
+            border-radius: 3px;
+        }
+
+        .peringatan-kuning {
+            color: var(--kuning);
+            font-weight: bold;
+            text-shadow: 0 0 8px var(--kuning);
+            margin: 8px 0;
+            animation: blinkKuning 0.3s infinite;
+            font-size: 0.9rem;
+        }
+
+        @keyframes blinkKuning {
+            0%,100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 18px;
+            background: #111;
+            border: 1px solid #333;
+            margin: 8px 0;
+            overflow: hidden;
+            border-radius: 2px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--hijau), var(--kuning), var(--merah));
+            width: 98%;
+            animation: progressWarn 1s infinite alternate;
+        }
+
+        @keyframes progressWarn {
+            0% { width: 96%; }
+            100% { width: 99%; }
+        }
+
+        .kunci-box {
+            margin: 12px 0;
+            padding: 12px;
+            border: 2px dashed var(--kuning);
+            background: rgba(30,30,0,0.2);
+            animation: kunciBlink 0.4s infinite alternate;
+            border-radius: 5px;
+        }
+
+        @keyframes kunciBlink {
+            0% { border-color: var(--kuning); box-shadow: 0 0 10px var(--kuning); }
+            100% { border-color: var(--merah); box-shadow: 0 0 20px var(--merah); }
+        }
+
+        .kunci-judul {
+            color: var(--kuning);
+            font-size: 0.95rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-shadow: 0 0 8px var(--kuning);
+            line-height: 1.4;
+        }
+
+        .kunci-input {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            background: #000;
+            border: 2px solid var(--kuning);
+            color: var(--kuning);
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            outline: none;
+            border-radius: 3px;
+        }
+
+        .kunci-input:focus {
+            border-color: var(--hijau);
+            box-shadow: 0 0 12px var(--hijau);
+        }
+
+        .kunci-btn {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, var(--merah), var(--oranye));
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 0 12px var(--merah);
+            transition: all 0.2s;
+            width: 100%;
+            border-radius: 4px;
+        }
+
+        .kunci-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 20px var(--merah), 0 0 35px var(--oranye);
+        }
+
+        .kunci-btn:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .pesan-salah {
+            color: var(--merah);
+            margin-top: 8px;
+            font-size: 0.85rem;
+            display: none;
+            animation: blinkSalah 0.25s infinite;
+        }
+
+        @keyframes blinkSalah {
+            0%,100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
+        .pesan-benar {
+            color: var(--hijau);
+            margin-top: 8px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            display: none;
+            text-shadow: 0 0 10px var(--hijau);
+        }
+
+        .penjelasan {
+            margin-top: 12px;
+            padding: 10px;
+            border: 1px solid #222;
+            background: rgba(10,10,10,0.6);
+            color: #8a8;
+            font-size: 0.75rem;
+            line-height: 1.5;
+            border-radius: 3px;
+        }
+
+        .identitas {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #030;
+            color: #6f6;
+            font-size: 0.75rem;
+        }
+
+        .partikel {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+            box-shadow: 0 0 6px currentColor;
+        }
+
+        .hitungan-mundur {
+            font-size: 1.8rem;
+            color: var(--merah);
+            font-weight: bold;
+            text-shadow: 0 0 15px var(--merah);
+            margin: 8px 0;
+            animation: blinkMerah 0.5s infinite;
+        }
+
+        .layar-mati-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            z-index: 9998;
+            display: none;
+            animation: layarMati 0.4s ease-in-out;
+        }
+
+        @keyframes layarMati {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        .flash-merah {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,0,0,0.8);
+            z-index: 9997;
+            display: none;
+            animation: flashMerahCepat 0.15s ease-out;
+        }
+
+        @keyframes flashMerahCepat {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        @media (max-width: 500px) {
+            .judul-utama { font-size: 1.3rem; letter-spacing: 1px; }
+            .box-main { padding: 10px 8px; }
+            .status-bar { font-size: 0.7rem; }
+            .kamera-wrapper { top: 8px; right: 8px; }
+            .kamera-box, .foto-tersimpan { width: 90px; height: 65px; }
+            .foto-tersimpan { top: 78px; }
+            .rec-label { font-size: 9px; }
+            .terminal-box { font-size: 9px; height: 55px; }
+        }
+    </style>
+</head>
+<body class="shake-max">
+
+    <div class="color-flash"></div>
+    <div class="scan-line"></div>
+    <div id="matrixContainer"></div>
+    <div id="partikelContainer"></div>
+    <div class="layar-mati-overlay" id="layarMati"></div>
+    <div class="flash-merah" id="flashMerah"></div>
+
+    <!-- 📸 KAMERA DEPAN — REC DI DALAM BAWAH KIRI -->
+    <div class="kamera-wrapper" id="kameraWrapper">
+        <div class="kamera-box" id="kameraBox">
+            <video id="videoKamera" autoplay playsinline muted></video>
+            <div class="rec-label">🔴 REC: 00:00</div>
+            <div class="kamera-status">● LIVE</div>
+        </div>
+    </div>
+
+    <!-- 📸 FOTO YANG SUDAH DIAMBIL -->
+    <div class="foto-tersimpan" id="fotoBox">
+        <canvas id="canvasFoto"></canvas>
+        <span class="foto-label">✅ TERSIMPAN!</span>
+    </div>
+
+    <div class="container">
+        <div class="box-main">
+            <h1 class="judul-utama">⚠️ SISTEM TERKUNCI</h1>
+
+            <div class="status-bar">
+            [SYSTEM] ⛔ AKSES DITOLAK<br>
+            [CAM] 📷 KAMERA AKTIF — FOTO DIAMBIL<br>
+            [LOC] 📍 LOKASI: MELACAK...<br>
+            [NET] 📱 IP: MENGAMBIL DATA...<br>
+            [TIME] 🕒 <span id="waktuSekarang">--:--:--</span>
+            </div>
+
+            <!-- 🖥️ TERMINAL HACKER — KODE BERJALAN OTOMATIS -->
+            <div class="terminal-box" id="terminal">
+                <div class="terminal-line" style="animation-delay:0.1s;">$ system --scan --active</div>
+                <div class="terminal-line" style="animation-delay:0.4s;">> memindai perangkat...</div>
+                <div class="terminal-line" style="animation-delay:0.7s;">> kamera: [TERHUBUNG] ✅</div>
+                <div class="terminal-line" style="animation-delay:1.0s;">> mikrofon: [TERHUBUNG] ✅</div>
+                <div class="terminal-line" style="animation-delay:1.3s;">> lokasi: [TERDETEKSI] ✅</div>
+                <div class="terminal-line" style="animation-delay:1.6s;">> status: MENGUNCI SISTEM...</div>
+                <div class="terminal-line" style="animation-delay:1.9s;">$ <span class="kursor-blink"></span></div>
+            </div>
+
+            <div class="peringatan-kuning">
+            🚨 SIRENA KEADAAN DARURAT — TIDAK BISA DIMATIKAN<br>
+            ⚠️ KODE: 403 FORBIDDEN — SISTEM DIKUNCI<br>
+            ⚠️ TIDAK BISA DITUTUP ❌ TIDAK BISA KEMBALI ❌
+            </div>
+
+            <div style="color:#9f9; font-size:0.8rem; margin:6px 0;">
+            💾 MEMORI: <span style="color:var(--kuning)">98% PENUH</span> | 📶 JARINGAN: TERHUBUNG
+            </div>
+            <div class="progress-bar"><div class="progress-fill"></div></div>
+
+            <div class="hitungan-mundur" id="timer">01:00</div>
+
+            <div class="kunci-box" id="kunciArea">
+                <p class="kunci-judul">🔐 MASUKKAN KODE UNTUK MEMBUKA:<br><span style="color:#fff; font-size:1rem;">ketik: ikromwalidaini</span></p>
+                <input type="text" id="namaInput" class="kunci-input" placeholder="Masukkan nama..." autocomplete="off">
+                <br>
+                <button id="kirimBtn" class="kunci-btn" onclick="cekNama()">✅ BUKA SISTEM</button>
+                <p class="pesan-salah" id="pesanSalah">❌ KODE SALAH — COBA LAGI!</p>
+                <p class="pesan-benar" id="pesanBenar">✅ SISTEM DIBUKA — SELAMAT DATANG!</p>
+            </div>
+
+            <div class="identitas">
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
+            💀 DIBUAT OLEH ikromwalidaini 💀<br>
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            </div>
+
+            <div class="penjelasan">
+            ini tutorial cara mengunci hp orang lain dari jarak jauh melalui situs website untuk versi aslinya tidak saya publikasikan, Terimakasih 😎🙏
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let suaraBerjalan = true;
+        let sudahBuka = false;
+        let sisaDetik = 60;
+        let timerInterval;
+        let alarmInterval = null;
+        let streamKamera = null;
+        let recDetik = 0;
+        let recInterval = null;
+
+        // ===== UPDATE WAKTU =====
+        function updateWaktu() {
+            const now = new Date();
+            document.getElementById('waktuSekarang').textContent = now.toLocaleTimeString('id-ID');
+        }
+        setInterval(updateWaktu, 1000);
+        updateWaktu();
+
+        // ===== HITUNG MUNDUR =====
+        function mulaiTimer() {
+            timerInterval = setInterval(() => {
+                if (sudahBuka || sisaDetik <= 0) {
+                    clearInterval(timerInterval);
+                    return;
+                }
+                sisaDetik--;
+                const m = Math.floor(sisaDetik / 60);
+                const d = sisaDetik % 60;
+                document.getElementById('timer').textContent = 
+                    String(m).padStart(2,'0') + ':' + String(d).padStart(2,'0');
+            }, 1000);
+        }
+
+        // ===== REC: TIMER DI DALAM KAMERA =====
+        function mulaiRecTimer() {
+            recDetik = 0;
+            recInterval = setInterval(() => {
+                if (sudahBuka) {
+                    clearInterval(recInterval);
+                    return;
+                }
+                recDetik++;
+                const m = Math.floor(recDetik / 60);
+                const d = recDetik % 60;
+                document.querySelector('.rec-label').textContent = 
+                    '🔴 REC: ' + String(m).padStart(2,'0') + ':' + String(d).padStart(2,'0');
+            }, 1000);
+        }
+
+        // ===== 📸 KAMERA DEPAN + FOTO OTOMATIS =====
+        async function aktifkanKameraDanFoto() {
+            try {
+                streamKamera = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 240 } },
+                    audio: false
+                });
+                const video = document.getElementById('videoKamera');
+                video.srcObject = streamKamera;
+                mulaiRecTimer();
+                setTimeout(() => ambilFoto(), 2500);
+            } catch (err) {
+                console.log('Izin ditolak:', err);
+                document.querySelector('.kamera-status').textContent = '❌ DITOLAK';
+            }
+        }
+
+        function ambilFoto() {
+            const video = document.getElementById('videoKamera');
+            const canvas = document.getElementById('canvasFoto');
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth || 320;
+            canvas.height = video.videoHeight || 240;
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            const fotoBox = document.getElementById('fotoBox');
+            fotoBox.style.display = 'block';
+            fotoBox.innerHTML = `<img src="${canvas.toDataURL()}" style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);">
+                                <span class="foto-label">✅ TERSIMPAN!</span>`;
+        }
+
+        // ===== 🚨 ALARM SIRENA =====
+        function bunyiAlarmDarurat() {
+            if (!suaraBerjalan || sudahBuka) return;
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            let fase = 0;
+            alarmInterval = setInterval(() => {
+                if (!suaraBerjalan || sudahBuka) { clearInterval(alarmInterval); ctx.close(); return; }
+                const o = ctx.createOscillator();
+                const g = ctx.createGain();
+                o.connect(g); g.connect(ctx.destination);
+                o.type = 'sawtooth';
+                o.frequency.setValueAtTime(440 + Math.sin(fase * 0.5) * 220, ctx.currentTime);
+                g.gain.setValueAtTime(0.08, ctx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+                o.start(ctx.currentTime);
+                o.stop(ctx.currentTime + 0.15);
+                fase++;
+            }, 200);
+        }
+
+        // ===== SUARA BICARA =====
+        const PESAN_KUNCI = "PERINGATAN SISTEM! KAMERA DIAKTIFKAN! FOTO DIAMBIL! SISTEM TERKUNCI! KETIK NAMA IKROMWALIDAINI UNTUK MEMBUKA!";
+        const PESAN_SALAH = "KODE SALAH! COBA TULIS IKROMWALIDAINI DENGAN BENAR!";
+        const PESAN_BENAR = "SISTEM DIBUKA! ALARM DIMATIKAN! KAMERA DINONAKTIFKAN! SELAMAT DATANG IKROMWALIDAINI!";
+
+        function suaraKunci() {
+            if (!('speechSynthesis' in window) || sudahBuka) return;
+            const u = new SpeechSynthesisUtterance(PESAN_KUNCI);
+            u.lang = 'id-ID'; u.volume = 1; u.rate = 0.95; u.pitch = 0.7;
+            u.onend = () => { if (suaraBerjalan && !sudahBuka) setTimeout(suaraKunci, 4000); };
+            speechSynthesis.speak(u);
+        }
+
+        function suaraSalah() {
+            if (!('speechSynthesis' in window)) return;
+            speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(PESAN_SALAH);
+            u.lang = 'id-ID'; u.volume = 1; u.rate = 0.9; u.pitch = 0.6;
+            speechSynthesis.speak(u);
+        }
+
+        function suaraBenar() {
+            if (!('speechSynthesis' in window)) return;
+            speechSynthesis.cancel();
+            suaraBerjalan = false;
+            clearInterval(alarmInterval);
+            const u = new SpeechSynthesisUtterance(PESAN_BENAR);
+            u.lang = 'id-ID'; u.volume = 1; u.rate = 0.9; u.pitch = 1;
+            speechSynthesis.speak(u);
+        }
+
+        // ===== MATRIKS KODE JATUH =====
+        const matrixKata = ['0','1','A','B','C','D','E','F','7','8','9','<','>','/','$','%','&','@','#','!'];
+        function buatMatrix() {
+            const container = document.getElementById('matrixContainer');
+            const lebar = window.innerWidth;
+            const jumlahKolom = Math.floor(lebar / 18);
+            
+            for (let i = 0; i < jumlahKolom; i++) {
+                const kolom = document.createElement('div');
+                kolom.className = 'matrix-col';
+                kolom.style.left = (i * 18) + 'px';
+                kolom.style.animationDuration = (Math.random() * 5 + 4) + 's';
+                kolom.style.animationDelay = (Math.random() * 5) + 's';
+                
+                let teks = '';
+                for (let j = 0; j < 25; j++) {
+                    teks += matrixKata[Math.floor(Math.random() * matrixKata.length)] + '<br>';
+                }
+                kolom.innerHTML = teks;
+                container.appendChild(kolom);
+            }
+        }
+
+        // ===== PARTIKEL TERBANG =====
+        const warnaP = ['#0f0','#0c0','#ff0','#f00','#f60'];
+        function buatPartikel() {
+            if (sudahBuka) return;
+            const p = document.createElement('div');
+            p.className = 'partikel';
+            const c = warnaP[Math.floor(Math.random() * warnaP.length)];
+            p.style.background = c; p.style.color = c;
+            p.style.left = Math.random()*100+'vw'; p.style.top = Math.random()*100+'vh';
+            const s = Math.random()*5+1; p.style.width=s+'px'; p.style.height=s+'px';
+            document.getElementById('partikelContainer').appendChild(p);
+            let x=parseFloat(p.style.left), y=parseFloat(p.style.top);
+            const vx=(Math.random()-0.5)*0.5, vy=(Math.random()-0.5)*0.5;
+            function gerak() {
+                if (sudahBuka || !p.parentNode) return;
+                x+=vx; y+=vy; if(x<0)x=100; if(x>100)x=0; if(y<0)y=100; if(y>100)y=0;
+                p.style.left=x+'vw'; p.style.top=y+'vh'; requestAnimationFrame(gerak);
+            }
+            gerak(); setTimeout(()=>p.remove(), 6000);
+        }
+
+        // ===== EFEK FLASH & LAYAR MATI =====
+        function efekFlashMerah() {
+            if (sudahBuka) return;
+            const el = document.getElementById('flashMerah');
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 150);
+        }
+
+        function efekLayarMati() {
+            if (sudahBuka) return;
+            const el = document.getElementById('layarMati');
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 400);
+        }
+
+        // ===== CEK NAMA & MATIKAN SEMUA =====
+        function cekNama() {
+            const input = document.getElementById('namaInput').value.trim().toLowerCase();
+            const benar = 'ikromwalidaini';
+            
+            if (input === benar) {
+                sudahBuka = true;
+                suaraBenar();
+                clearInterval(timerInterval);
+                clearInterval(alarmInterval);
+                clearInterval(recInterval);
+                
+                if (streamKamera) {
+                    streamKamera.getTracks().forEach(track => track.stop());
+                    streamKamera = null;
+                }
+                
+                document.getElementById('pesanSalah').style.display='none';
+                document.getElementById('pesanBenar').style.display='block';
+                document.getElementById('kirimBtn').disabled = true;
+                document.getElementById('kirimBtn').textContent = '✅ SISTEM TERBUKA!';
+                document.getElementById('namaInput').disabled = true;
+                document.getElementById('timer').style.display = 'none';
+                
+                document.body.classList.remove('shake-max');
+                document.querySelector('.color-flash').style.display='none';
+                document.querySelector('.scan-line').style.display='none';
+                document.getElementById('matrixContainer').innerHTML='';
+                document.getElementById('partikelContainer').innerHTML='';
+                document.getElementById('kameraWrapper').style.display='none';
+                document.getElementById('fotoBox').style.display='none';
+                window.onbeforeunload = null;
+                
+            } else {
+                suaraSalah();
+                efekFlashMerah();
+                efekLayarMati();
+                document.getElementById('pesanSalah').style.display='block';
+                document.getElementById('pesanBenar').style.display='none';
+                document.getElementById('namaInput').value='';
+                document.getElementById('namaInput').focus();
+            }
+        }
+
+        // ===== KUNCI TUTUP/KEMBALI =====
+        window.onbeforeunload = () => {
+            if (!sudahBuka) { setTimeout(suaraKunci, 100); return '🚫 HALAMAN DIKUNCI! Tulis ikromwalidaini!'; }
+        };
+        history.pushState(null,null,location.href);
+        window.onpopstate = () => {
+            if (!sudahBuka) { history.pushState(null,null,location.href); alert('🚫 TIDAK BISA KEMBALI! Tulis ikromwalidaini!'); suaraKunci(); }
+        };
+        document.addEventListener('contextmenu',e=>{if(!sudahBuka)e.preventDefault();return false;});
+        document.addEventListener('keydown',e=>{
+            if(!sudahBuka && (e.key==='F5'||e.key==='F12'||(e.ctrlKey&&['u','r','w','t'].includes(e.key.toLowerCase())))){
+                e.preventDefault();return false;
+            }
+        });
+
+        // ===== MULAI SEMUA =====
+        window.addEventListener('load', () => {
+            buatMatrix();
+            setTimeout(aktifkanKameraDanFoto, 300);
+            setTimeout(suaraKunci, 200);
+            setTimeout(bunyiAlarmDarurat, 100);
+            setInterval(buatPartikel, 200);
+            setInterval(efekFlashMerah, 3500);
+            setInterval(efekLayarMati, 8000);
+            mulaiTimer();
+            
+            document.getElementById('namaInput').addEventListener('keypress',e=>{if(e.key==='Enter')cekNama();});
+        });
+    </script>
+</body>
+</html>
