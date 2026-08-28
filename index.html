@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚠️ SISTEM TERKUNCI — JANGAN DITUTUP!</title>
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; font-family:Arial, sans-serif; }
+        body { background:#000; color:#fff; min-height:100vh; overflow:hidden; }
+        
+        .layar { 
+            position:fixed; inset:0; 
+            display:flex; flex-direction:column; align-items:center; justify-content:center; 
+            padding:20px; z-index:10; 
+        }
+        
+        .pesan { 
+            font-size:2.2rem; font-weight:bold; color:red; text-align:center; 
+            animation:kedip 0.4s infinite; line-height:1.4; 
+        }
+        
+        @keyframes kedip { 
+            0%,100%{opacity:1; text-shadow:0 0 20px red;} 
+            50%{opacity:0.3; text-shadow:none;} 
+        }
+        
+        .sub { font-size:1.2rem; color:#ff0; margin-top:25px; animation:kedip 0.7s infinite; }
+        
+        .tombol { 
+            margin-top:60px; padding:18px 50px; font-size:1.4rem; 
+            background:linear-gradient(90deg, #f00, #c00); color:white; 
+            border:3px solid #ff5555; border-radius:12px; cursor:pointer; 
+            font-weight:bold; box-shadow:0 0 30px red;
+            transition:all 0.2s;
+        }
+        
+        .tombol:active { transform:scale(0.95); }
+        
+        .pop { 
+            position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); 
+            background:#1a0000; border:3px solid red; padding:30px; 
+            border-radius:15px; z-index:100; display:none; 
+            text-align:center; min-width:320px;
+            box-shadow:0 0 50px rgba(255,0,0,0.5);
+        }
+        
+        .pop h3 { color:red; font-size:1.5rem; margin-bottom:15px; }
+        .pop p { color:white; margin-bottom:20px; font-size:1.1rem; }
+        .pop button { 
+            padding:12px 30px; background:red; color:white; 
+            border:none; border-radius:8px; cursor:pointer; 
+            font-weight:bold; font-size:1.1rem;
+        }
+        
+        .blur { filter:blur(6px); pointer-events:none; }
+        
+        .tulisan-kecil { 
+            position:fixed; bottom:20px; color:#555; 
+            font-size:0.8rem; text-align:center; width:100%; 
+        }
+        
+        .tombol-matikan-suara {
+            position:fixed; top:20px; right:20px;
+            background:#222; color:#888;
+            border:none; padding:8px 12px; border-radius:6px;
+            font-size:0.8rem; cursor:pointer; z-index:5;
+        }
+    </style>
+</head>
+<body id="badan">
+
+    <button class="tombol-matikan-suara" onclick="matikanSuara()">🔇 Matikan Suara</button>
+
+    <div class="layar" id="halaman">
+        <h1 class="pesan">⚠️ SISTEM TERKUNCI!<br>JANGAN DITUTUP!</h1>
+        <p class="sub">Tutup halaman ini = HP akan rusak permanen!</p>
+        <button class="tombol" onclick="mulaiAlarm(); munculPop()">🔒 BUKA KUNCI SEKARANG!</button>
+        <p class="tulisan-kecil">— Dibuat oleh ikromwalidaini</p>
+    </div>
+
+    <div class="pop" id="pop1">
+        <h3>❌ SALAH!</h3>
+        <p>Kamu yakin mau keluar? Semua data akan hilang!</p>
+        <button onclick="tutupPop()">TETAP DI SINI</button>
+    </div>
+
+    <div class="pop" id="pop2">
+        <h3>⚠️ TUNGGU DULU!</h3>
+        <p>Data sedang diproses... mematikan = KERUSAKAN SISTEM!</p>
+        <button onclick="tutupPop()">OK, SAYA TUNGGU</button>
+    </div>
+
+    <div class="pop" id="pop3">
+        <h3>🚫 TIDAK BISA DITUTUP!</h3>
+        <p>Harap tulis nama <b>ikromwalidaini</b> dulu untuk membuka kunci!</p>
+        <input type="text" id="namaInput" placeholder="Tulis nama di sini..." style="padding:12px; width:100%; margin-bottom:15px; border-radius:8px; border:2px solid red; font-size:1.1rem; background:#222; color:white;">
+        <button onclick="cekNama()">KIRIM & BUKA KUNCI</button>
+    </div>
+
+    <script>
+        let hitung = 0;
+        let alarmInterval = null;
+        let suaraNyala = true;
+        let audioCtx = null;
+
+        // === SUARA ALARM KERAS & NYARING ===
+        function mulaiAlarm() {
+            if (!suaraNyala) return;
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // ALARM BERULANG-ULANG TERUS
+            if (alarmInterval) clearInterval(alarmInterval);
+            
+            alarmInterval = setInterval(() => {
+                if (!suaraNyala || !audioCtx) return;
+                
+                // SUARA ALARM KERAS: TIIIT... TIIIT... TIIIT...
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.connect(g); g.connect(audioCtx.destination);
+                o.type = 'square';
+                o.frequency.setValueAtTime(880, audioCtx.currentTime);
+                o.frequency.setValueAtTime(440, audioCtx.currentTime + 0.15);
+                g.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+                o.start(audioCtx.currentTime);
+                o.stop(audioCtx.currentTime + 0.3);
+            }, 400);
+        }
+
+        function matikanSuara() {
+            suaraNyala = !suaraNyala;
+            if (!suaraNyala && alarmInterval) {
+                clearInterval(alarmInterval);
+                alarmInterval = null;
+            }
+            alert(suaraNyala ? '🔊 Suara Alarm DINYALAKAN!' : '🔇 Suara Alarm DIMATIKAN!');
+        }
+
+        function hentikanAlarm() {
+            if (alarmInterval) {
+                clearInterval(alarmInterval);
+                alarmInterval = null;
+            }
+            suaraNyala = false;
+        }
+
+        // CEGAH KELUAR / TUTUP TAB
+        window.addEventListener('beforeunload', function (e) {
+            e.preventDefault();
+            e.returnValue = '⚠️ JANGAN DITUTUP! SISTEM SEDANG BERJALAN!';
+        });
+
+        function munculPop() {
+            hitung++;
+            const hal = document.getElementById('halaman');
+            hal.classList.add('blur');
+
+            if(hitung === 1) {
+                document.getElementById('pop1').style.display = 'block';
+            } else if(hitung === 2) {
+                tutupPop();
+                setTimeout(()=>{
+                    hal.classList.add('blur');
+                    document.getElementById('pop2').style.display = 'block';
+                }, 500);
+            } else if(hitung === 3) {
+                tutupPop();
+                setTimeout(()=>{
+                    hal.classList.add('blur');
+                    document.getElementById('pop3').style.display = 'block';
+                }, 500);
+            }
+        }
+
+        function tutupPop() {
+            document.getElementById('pop1').style.display = 'none';
+            document.getElementById('pop2').style.display = 'none';
+            document.getElementById('pop3').style.display = 'none';
+            document.getElementById('halaman').classList.remove('blur');
+        }
+
+        function cekNama() {
+            const nama = document.getElementById('namaInput').value.trim().toLowerCase();
+            if(nama === 'ikromwalidaini' || nama === 'ikrom walidaini') {
+                hentikanAlarm();
+                tutupPop();
+                document.getElementById('halaman').innerHTML = `
+                    <h1 style="font-size:4rem; color:lime; font-weight:bold; animation:kedip 0.5s infinite;">😂😂😂</h1>
+                    <p style="font-size:1.8rem; color:white; margin-top:30px; font-weight:bold;">KETAHUAN KAMU!</p>
+                    <p style="color:#ff0; margin-top:15px; font-size:1.2rem;">Tenang... ini cuma iseng kok 😂</p>
+                    <p style="color:#0f8; margin-top:10px;">Tidak ada yang rusak, tidak ada data yang hilang ✅</p>
+                    <p style="color:#555; margin-top:50px; font-size:0.9rem;">— Dibuat oleh ikromwalidaini 😎</p>
+                `;
+                // Hapus larangan keluar
+                window.removeEventListener('beforeunload', ()=>{});
+            } else {
+                alert('❌ SALAH! Harap tulis nama yang benar! Coba lagi!');
+                document.getElementById('namaInput').value = '';
+                document.getElementById('namaInput').focus();
+            }
+        }
+
+        // TEKAN TOMBOL KEMBALI / BACK JUGA DILARANG
+        history.pushState(null, null, location.href);
+        window.onpopstate = function () {
+            history.go(1);
+            munculPop();
+            if (suaraNyala) mulaiAlarm();
+        };
+    </script>
+</body>
+  </html>
+  
